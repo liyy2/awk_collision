@@ -19,6 +19,9 @@
 #awk -f collision2pairs_v0.3.awk -v junctionOnly=1 -v pair_radius=1  collisions.txt  | sed $'s/ /\t/g' > merged.txt
 #awk -f collision2pairs_v0.3.awk -v junctionOnly=0 -v pair_radius=1  collisions.txt  | sed $'s/ /\t/g' > merged.txt
 
+#version0.4: eliminate the 'junctionOnly argument', only keep the circumstances where it is 1
+#add the 'dis' argument to allow the user to filter out the fragments of which the distance is smaller than some user defined value 
+#awk -f collision2pairs_v0.3.awk -v dis=100 -v pair_radius=1  collisions.txt  | sed $'s/ /\t/g' > merged.txt
 function less_than(s1,c1,p1,s2,c2,p2)
 {
 
@@ -34,13 +37,28 @@ function less_than(s1,c1,p1,s2,c2,p2)
   return 1;
 }
 
+function distance_comp(x,y,setting){
+	# check the default setting is greater than 0
+	if (setting<0) 
+		setting = (-1)*setting;
+	else{
+		if ((x-y < setting)&&( y-x <setting)){
+			return 0;
+		}
+		else{
+			return 1;
+		}
+	}
+}
 
 
 {
+	# if the number of fields is less than 7 , it is not a chimeric reads and we skip it
 	if (NF<7) {next;}
-	#only look at lines with chimeric reads
+	# only look at lines with chimeric reads
 	else {
 		count=NF/12;
+	# split each line into an awk array called tmp
 		split($0,tmp);
 		for (i=0;i<count;i++) {
 			name[i]= tmp[i*12+1];
@@ -58,78 +76,43 @@ function less_than(s1,c1,p1,s2,c2,p2)
 				else {
 					read1=x;
 					read2=y;
-					if (junctionOnly) {
 						#junctionOnly=1 (true), eg: #eg: ABC with A1,A2; B1,B2; C1,C2 -- if pair_radius==1, will consider A2B1,B2C1; if pair_radius=="infinity", will consider will consider A2B1,B2C1, and A2C1 
-						if (pair_radius=="infinity") {
+					if (pair_radius=="infinity") {
+						#use short format
+						if (less_than(str[read1],chr[read1],pos[read1],str[read2],chr[read2],pos[read2])) {
+							if (distance_comp(pos[read1],pos[read2],fragmentDistance))
+							print name[read1],str[read1],chr[read1],pos_end[read1],str[read2],chr[read2],pos[read2], m[read1],m[read2]; #A2B1
+							else pass;
+						}
+						else {
+							if (distance_comp(pos[read2],pos_end[read1],fragmentDistance))
+							print name[read2],str[read2],chr[read2],pos[read2],str[read1],chr[read1],pos_end[read1], m[read1],m[read1]; #B1A2
+							else pass;
+						}
+
+					}
+
+					else  {
+						if (read2-read1<=pair_radius) {
 							#use short format
 							if (less_than(str[read1],chr[read1],pos[read1],str[read2],chr[read2],pos[read2])) {
-			                	print name[read1],str[read1],chr[read1],pos_end[read1],str[read2],chr[read2],pos[read2], m[read1],m[read2]; #A2B1
-			                }
-			                else {
-			                	print name[read2],str[read2],chr[read2],pos[read2],str[read1],chr[read1],pos_end[read1], m[read1],m[read1]; #B1A2
-			                }
-
-						}
-						else  {
-							if (read2-read1<=pair_radius) {
-								#use short format
-								if (less_than(str[read1],chr[read1],pos[read1],str[read2],chr[read2],pos[read2])) {
-				                	print name[read1],str[read1],chr[read1],pos_end[read1],str[read2],chr[read2],pos[read2], m[read1],m[read2]; #A2B1
-				                }
-				                else {
-				                	print name[read2],str[read2],chr[read2],pos[read2],str[read1],chr[read1],pos_end[read1], m[read1],m[read1]; #B1A2
-				                }
-
+								if (distance_comp(pos[read1],pos[read2],fragmentDistance))
+								print name[read1],str[read1],chr[read1],pos_end[read1],str[read2],chr[read2],pos[read2], m[read1],m[read2]; #A2B1
+								else pass;
 							}
-							else {pass;}
+							else {
+								if (distance_comp(pos[read2],pos_end[read1],fragmentDistance))
+								print name[read2],str[read2],chr[read2],pos[read2],str[read1],chr[read1],pos_end[read1], m[read1],m[read1]; #B1A2
+								else pass;
+							}
 
 						}
+						else {pass;}
+
+					}
 						
 
-					}
-					else {
-						#junctionOnly=0 (false), eg: #eg: ABC with A1,A2; B1,B2; C1,C2 -- if pair_radius==1, will consider A1B1,A1B2,A2B1,A2B2 PLUS B1C1,B1C2,B2C1,B2C2; if pair_radius=="infinity", will consider will consider A1B1,A1B2,A2B1,A2B2 PLUS B1C1,B1C2,B2C1,B2C2, and A1C1,A1C2,A2C1,A2C2. 
-
-						if (pair_radius=="infinity") {
-							#use short format
-							if (less_than(str[read1],chr[read1],pos[read1],str[read2],chr[read2],pos[read2])) {
-			                	print name[read1],str[read1],chr[read1],pos[read1],str[read2],chr[read2],pos[read2], m[read1],m[read2];#A1B1
-			                	print name[read1],str[read1],chr[read1],pos[read1],str[read2],chr[read2],pos_end[read2], m[read1],m[read2]; #A1B2
-			                	print name[read1],str[read1],chr[read1],pos_end[read1],str[read2],chr[read2],pos[read2], m[read1],m[read2]; #A2B1
-			                	print name[read1],str[read1],chr[read1],pos_end[read1],str[read2],chr[read2],pos_end[read2], m[read1],m[read2]; #A2B2
-			                }
-			                else {
-			                	print name[read2],str[read2],chr[read2],pos[read2],str[read1],chr[read1],pos[read1],m[read2],m[read1]; #B1A1
-			                	print name[read2],str[read2],chr[read2],pos_end[read2],str[read1],chr[read1],pos[read1], m[read2],m[read1]; #B2A1
-			                	print name[read2],str[read2],chr[read2],pos[read2],str[read1],chr[read1],pos_end[read1], m[read1],m[read1]; #B1A2
-			                	print name[read2],str[read2],chr[read2],pos_end[read2],str[read1],chr[read1],pos_end[read1], m[read1],m[read1]; #B2A2
-			                }
-
-						}
-
-						else {
-							if (y-x<=pair_radius) {
-								if (less_than(str[read1],chr[read1],pos[read1],str[read2],chr[read2],pos[read2])) {
-			                		print name[read1],str[read1],chr[read1],pos[read1],str[read2],chr[read2],pos[read2], m[read1],m[read2]; #A1B1
-			                		print name[read1],str[read1],chr[read1],pos[read1],str[read2],chr[read2],pos_end[read2], m[read1],m[read2]; #A1B2
-			                		print name[read1],str[read1],chr[read1],pos_end[read1],str[read2],chr[read2],pos[read2], m[read1],m[read2]; #A2B1
-			                		print name[read1],str[read1],chr[read1],pos_end[read1],str[read2],chr[read2],pos_end[read2], m[read1],m[read2]; #A2B2
-			                	}
-			                	else {
-			                		print name[read2],str[read2],chr[read2],pos[read2],str[read1],chr[read1],pos[read1],m[read2],m[read1]; #B1A1
-			                		print name[read2],str[read2],chr[read2],pos_end[read2],str[read1],chr[read1],pos[read1], m[read2],m[read1]; #B2A1
-			                		print name[read2],str[read2],chr[read2],pos[read2],str[read1],chr[read1],pos_end[read1], m[read1],m[read1]; #B1A2
-			                		print name[read2],str[read2],chr[read2],pos_end[read2],str[read1],chr[read1],pos_end[read1], m[read1],m[read1]; #B2A2
-			              		}
-							}
-							else {pass;}
-
-						}
-					}
-
-
-					
-
+				
 				}
 
 

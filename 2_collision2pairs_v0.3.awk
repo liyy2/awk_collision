@@ -120,22 +120,4 @@ function distance_comp(x,y,setting){
 			}
 		}
 	}
-}[read1],m[read1]; #B2A2
-			              		}
-							}
-							else {pass;}
-
-						}
-					}
-
-
-					
-
-				}
-
-
-
-			}
-		}
-	}
 }

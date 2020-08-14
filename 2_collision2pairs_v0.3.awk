@@ -21,7 +21,7 @@
 
 #version0.4: eliminate the 'junctionOnly argument', only keep the circumstances where it is 1
 #add the 'dis' argument to allow the user to filter out the fragments of which the distance is smaller than some user defined value 
-#awk -f collision2pairs_v0.3.awk -v dis=100 -v pair_radius=1  collisions.txt  | sed $'s/ /\t/g' > merged.txt
+#awk -f 2_collision2pairs_v0.3.awk -v fragmentDistance=100 -v pair_radius=1  collisions_tab.txt  | sed $'s/ /\t/g' > merged.txt
 function less_than(s1,c1,p1,s2,c2,p2)
 {
 

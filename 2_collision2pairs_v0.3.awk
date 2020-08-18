@@ -22,6 +22,7 @@
 #version0.4: eliminate the 'junctionOnly argument', only keep the circumstances where it is 1
 #add the 'fragmentDistance' argument to allow the user to filter out the fragments of which the distance is smaller than some user defined value 
 #awk -f 2_collision2pairs_v0.3.awk -v fragmentDistance=100 -v pair_radius=1  collisions_tab.txt  | sed $'s/ /\t/g' > merged.txt
+
 function less_than(s1,c1,p1,s2,c2,p2)
 {
 
@@ -37,18 +38,27 @@ function less_than(s1,c1,p1,s2,c2,p2)
   return 1;
 }
 
-function distance_comp(x,y,setting){
+function abs(x)
+{
+	if (x<0) return (-1)*x;
+	else return x;
+}
+
+function distance_comp(x,y,chr1,chr2,setting)
+{
 	# check the default setting is greater than 0
 	if (setting<0) 
-		setting = (-1)*setting;
+		setting = -setting;
 	else{
-		if ((x-y < setting)&&( y-x <setting)){
-			return 0;
+		if (chr1==chr2){
+			distance = abs(x-y)
 		}
 		else{
-			return 1;
+			distance = 10000000 + abs(x-y)
 		}
 	}
+	if (distance >= setting) return 1;
+	else return 0;
 }
 
 
@@ -80,12 +90,12 @@ function distance_comp(x,y,setting){
 					if (pair_radius=="infinity") {
 						#use short format
 						if (less_than(str[read1],chr[read1],pos[read1],str[read2],chr[read2],pos[read2])) {
-							if (distance_comp(pos[read1],pos[read2],fragmentDistance))
+							if (distance_comp(pos[read1],pos[read2],chr[read1],chr[read2],fragmentDistance))
 							print name[read1],str[read1],chr[read1],pos_end[read1],str[read2],chr[read2],pos[read2], m[read1],m[read2]; #A2B1
 							else pass;
 						}
 						else {
-							if (distance_comp(pos[read2],pos_end[read1],fragmentDistance))
+							if (distance_comp(pos[read2],pos_end[read1],chr[read2],chr[read1],fragmentDistance))
 							print name[read2],str[read2],chr[read2],pos[read2],str[read1],chr[read1],pos_end[read1], m[read1],m[read1]; #B1A2
 							else pass;
 						}
@@ -96,12 +106,12 @@ function distance_comp(x,y,setting){
 						if (read2-read1<=pair_radius) {
 							#use short format
 							if (less_than(str[read1],chr[read1],pos[read1],str[read2],chr[read2],pos[read2])) {
-								if (distance_comp(pos[read1],pos[read2],fragmentDistance))
+								if (distance_comp(pos[read1],pos[read2],chr[read1],chr[read2],fragmentDistance))
 								print name[read1],str[read1],chr[read1],pos_end[read1],str[read2],chr[read2],pos[read2], m[read1],m[read2]; #A2B1
 								else pass;
 							}
 							else {
-								if (distance_comp(pos[read2],pos_end[read1],fragmentDistance))
+								if (distance_comp(pos[read2],pos_end[read1],chr[read2],chr[read1],fragmentDistance))
 								print name[read2],str[read2],chr[read2],pos[read2],str[read1],chr[read1],pos_end[read1], m[read1],m[read1]; #B1A2
 								else pass;
 							}
